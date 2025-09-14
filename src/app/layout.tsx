@@ -11,7 +11,7 @@ import { auth } from "@/server/auth";
 export const metadata: Metadata = {
   title: "Transpera Ai — AI Document Translator",
   description:
-    "Translate DOCX and PDF into 10+ languages. Sleek shadcn UI, instant download.",
+    "Translate DOCX and PDF into different languages.",
   icons: [{ rel: "icon", url: "/translate.webp" }],
 };
 

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -26,7 +27,7 @@ export function Navbar() {
     <header className="bg-background/70 sticky top-0 z-40 w-full border-b backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="bg-primary h-5 w-5 rounded" />
+          <Image src="/translate.webp" alt="Transpera Ai" width={20} height={20} className="bg-primary h-5 w-5 rounded" />
           <span className="text-sm font-semibold tracking-tight">
             Transpera Ai
           </span>

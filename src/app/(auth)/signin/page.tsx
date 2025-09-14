@@ -17,7 +17,7 @@ export default function SignInPage() {
         <CardContent className="space-y-6">
           <Button className="w-full" onClick={() => signIn("google", { callbackUrl: "/translator" })}>
             <div className="mr-2 h-4 w-4">
-                <Image src="/translate.webp" alt="" width={16} height={16} />
+                <Image src="/translate.webp" className="rounded-full" alt="" width={16} height={16} />
             </div>
             Continue with Google
           </Button> 

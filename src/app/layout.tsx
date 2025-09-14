@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "Transpera Ai — AI Document Translator",
   description:
     "Translate DOCX and PDF into 10+ languages. Sleek shadcn UI, instant download.",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/translate.webp" }],
 };
 
 const geist = Geist({

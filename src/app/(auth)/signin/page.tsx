@@ -17,10 +17,10 @@ export default function SignInPage() {
         <CardContent className="space-y-6">
           <Button className="w-full" onClick={() => signIn("google", { callbackUrl: "/translator" })}>
             <div className="mr-2 h-4 w-4">
-              <Image src="/favicon.ico" alt="" width={16} height={16} />
+                <Image src="/translate.webp" alt="" width={16} height={16} />
             </div>
             Continue with Google
-          </Button>
+          </Button> 
           <Separator />
           <p className="text-center text-xs text-muted-foreground">
             By continuing, you agree to our Terms and Privacy Policy.

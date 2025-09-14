@@ -1,13 +1,23 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { api } from "@/trpc/react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 
 type StreamUpdate = {
@@ -30,12 +40,10 @@ const LANG_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "Hindi", label: "Hindi" },
   { value: "Japanese", label: "Japanese" },
   { value: "Korean", label: "Korean" },
-  { value : "Urdu", label: "Urdu" },
+  { value: "Urdu", label: "Urdu" },
 ];
 
 export function TranslatorUI() {
-  const { data: py } = api.python.pythonBaseUrl.useQuery();
-  const pythonBaseUrl = py?.baseUrl ?? "http://localhost:8000";
 
   const [file, setFile] = useState<File | null>(null);
   const [targetLang, setTargetLang] = useState<string>("Hindi");
@@ -60,13 +68,16 @@ export function TranslatorUI() {
     setError(null);
   }, []);
 
-  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const dt = e.dataTransfer;
-    const f = dt?.files?.[0];
-    if (f) onSelectFile(f);
-  }, [onSelectFile]);
+  const onDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const dt = e.dataTransfer;
+      const f = dt?.files?.[0];
+      if (f) onSelectFile(f);
+    },
+    [onSelectFile],
+  );
 
   const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -94,7 +105,7 @@ export function TranslatorUI() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${pythonBaseUrl}/translate`, {
+      const res = await fetch(`api/python/translate`, {
         method: "POST",
         body: form,
         signal: controller.signal,
@@ -126,7 +137,7 @@ export function TranslatorUI() {
             if (data.downloadUrl) {
               setDownloadPath(data.downloadUrl);
             }
-          } catch (e) {
+          } catch {
             // ignore malformed partial lines
           }
         }
@@ -153,7 +164,7 @@ export function TranslatorUI() {
       setIsUploading(false);
       abortRef.current = null;
     }
-  }, [engine, file, pythonBaseUrl, targetLang, tone]);
+  }, [engine, file, targetLang, tone]);
 
   const cancelUpload = useCallback(() => {
     abortRef.current?.abort();
@@ -161,10 +172,9 @@ export function TranslatorUI() {
 
   const downloadHref = useMemo(() => {
     if (!downloadPath) return null;
-    const base = pythonBaseUrl.replace(/\/$/, "");
     const path = downloadPath.startsWith("/") ? downloadPath : `/${downloadPath}`;
-    return `${base}${path}`;
-  }, [downloadPath, pythonBaseUrl]);
+    return `/api/python/download?path=${encodeURIComponent(path)}`;
+  }, [downloadPath]);
 
   return (
     <section className="mx-auto w-full max-w-5xl">
@@ -173,7 +183,7 @@ export function TranslatorUI() {
           <CardTitle>
             <h2>Upload your document</h2>
           </CardTitle>
-          <CardDescription className="flex flex-row gap-2 justify-between w-full">
+          <CardDescription className="flex w-full flex-row justify-between gap-2">
             <p>DOCX or PDF supported. Choose target language and options.</p>
             <div className="space-y-2">
               <Label>Target language</Label>
@@ -279,5 +289,3 @@ export function TranslatorUI() {
     </section>
   );
 }
-
-

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   createTRPCRouter,
+  protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
 
@@ -31,6 +32,25 @@ export const pythonRouter = createTRPCRouter({
       const blob = await res.arrayBuffer();
       const base64 = Buffer.from(new Uint8Array(blob)).toString("base64");
       return { filename: "document_summary.docx", base64 };
+    }),
+
+    translate: protectedProcedure
+    .input(z.object({
+      file: z.instanceof(File),
+      targetLang: z.string(),
+      engine: z.string(),
+      generateSummary: z.boolean(),
+      firstPageOnly: z.boolean(),
+      tone: z.string(),
+      pdfEngine: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const res = await fetch(`${PY_BASE}/translate`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error(`Translate failed: ${res.status}`);
+      return res as unknown;
     }),
 
   pythonBaseUrl: publicProcedure.query(() => ({ baseUrl: PY_BASE })),

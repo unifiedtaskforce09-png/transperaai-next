@@ -11,9 +11,10 @@ export async function POST(req: NextRequest) {
   if (!session?.user) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
+  console.log("API CALLED: ", PY_BASE);
 
   const form = await req.formData();
-
+  form.append("max_total_chars", "50000");
   const upstream = await fetch(`${PY_BASE}/translate`, {
     method: "POST",
     // Let undici set proper multipart headers for FormData

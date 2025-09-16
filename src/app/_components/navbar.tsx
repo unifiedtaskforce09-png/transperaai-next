@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { signOut, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
+import { FaGoogle } from "react-icons/fa";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -27,20 +28,19 @@ export function Navbar() {
     <header className="bg-background/70 sticky top-0 z-40 w-full border-b backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/translate.webp" alt="Transpera Ai" width={20} height={20} className="bg-primary h-5 w-5 rounded" />
+          <Image
+            src="/translate.webp"
+            alt="Transpera Ai"
+            width={20}
+            height={20}
+            className="bg-primary h-5 w-5 rounded"
+          />
           <span className="text-sm font-semibold tracking-tight">
             Transpera Ai
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 sm:flex">
-          <NavLink href="/" label="Home" />
-          {status === "authenticated" ? (
-            <NavLink href="/translator" label="Translator" />
-          ) : (
-            <NavLink href="/signin" label="Translator" />
-          )}
-        </nav>
+
 
         <div className="flex items-center gap-2">
           {status === "authenticated" ? (
@@ -53,9 +53,12 @@ export function Navbar() {
               </Button>
             </>
           ) : (
-            <Link href="/signin">
-              <Button size="sm">Sign in</Button>
-            </Link>
+            <Button
+              className="w-full"
+              onClick={() => signIn("google", { callbackUrl: "/translator" })}
+            >
+             <FaGoogle />
+            </Button>
           )}
         </div>
       </div>

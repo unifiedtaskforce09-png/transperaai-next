@@ -7,6 +7,7 @@ import { TRPCReactProvider } from "@/trpc/react";
 import { Navbar } from "@/app/_components/navbar";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/server/auth";
+import { ThemeProvider } from "@/app/_components/theme-provider";
 
 export const metadata: Metadata = {
   title: "Transpera Ai — AI Document Translator",
@@ -25,14 +26,20 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
   return (
-    <html lang="en" className={`${geist.variable}`}>
+    <html
+      lang="en"
+      className={`${geist.variable}`}
+      suppressHydrationWarning
+    >
       <body>
-        <TRPCReactProvider>
-          <SessionProvider session={session}>
-            <Navbar />
-            {children}
-          </SessionProvider>
-        </TRPCReactProvider>
+        <ThemeProvider>
+          <TRPCReactProvider>
+            <SessionProvider session={session}>
+              <Navbar />
+              {children}
+            </SessionProvider>
+          </TRPCReactProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

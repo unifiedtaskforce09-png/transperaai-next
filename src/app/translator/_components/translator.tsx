@@ -19,6 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 
 type StreamUpdate = {
   progress?: number;
@@ -30,25 +40,38 @@ type StreamUpdate = {
   downloadUrl?: string;
 };
 
-const LANG_OPTIONS: Array<{ value: string; label: string }> = [
+// Languages organized by category for the searchable combobox
+
+const TONE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "professional", label: "Professional" },
+  { value: "casual", label: "Casual" },
+  { value: "easy_to_understand", label: "Easy to understand" },
+];
+
+const EUROPEAN_LANGS: Array<{ value: string; label: string }> = [
   { value: "English", label: "English" },
   { value: "Spanish", label: "Spanish" },
-  { value: "French", label: "French" },
   { value: "German", label: "German" },
-  { value: "Portuguese", label: "Portuguese" },
-  { value: "Arabic", label: "Arabic" },
+  { value: "French", label: "French" },
+];
+
+const INDIC_LANGS: Array<{ value: string; label: string }> = [
   { value: "Hindi", label: "Hindi" },
-  { value: "Japanese", label: "Japanese" },
-  { value: "Korean", label: "Korean" },
+  { value: "Gujarati", label: "Gujarati" },
   { value: "Urdu", label: "Urdu" },
+];
+
+const OTHER_LANGS: Array<{ value: string; label: string }> = [
+  { value: "Arabic", label: "Arabic" },
 ];
 
 export function TranslatorUI() {
 
   const [file, setFile] = useState<File | null>(null);
   const [targetLang, setTargetLang] = useState<string>("Hindi");
-  const [engine, setEngine] = useState<string>("gemini");
+  const [engine] = useState<string>("gemini");
   const [tone, setTone] = useState<string>("professional");
+  const [langOpen, setLangOpen] = useState<boolean>(false);
 
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
@@ -166,9 +189,7 @@ export function TranslatorUI() {
     }
   }, [engine, file, targetLang, tone]);
 
-  const cancelUpload = useCallback(() => {
-    abortRef.current?.abort();
-  }, []);
+  // cancelUpload function not needed; using abortRef directly where needed
 
   const downloadHref = useMemo(() => {
     if (!downloadPath) return null;
@@ -178,27 +199,108 @@ export function TranslatorUI() {
 
   return (
     <section className="mx-auto w-full max-w-5xl">
-      <Card>
-        <CardHeader className="flex flex-col gap-2">
+      <Card className="relative rounded-2xl border-white/60 bg-white/70 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+        <CardHeader className="flex flex-col gap-1 sm:gap-2">
           <CardTitle>
-            <h2>Upload your document</h2>
+            <h2 className="text-center text-2xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+              Upload your document
+            </h2>
           </CardTitle>
-          <CardDescription className="flex w-full flex-row justify-between gap-2">
-            <p>DOCX or PDF supported. Choose target language and options.</p>
-            <div className="space-y-2">
-              <Label>Target language</Label>
-              <Select value={targetLang} onValueChange={setTargetLang}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANG_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <CardDescription className="flex w-full flex-col items-center justify-between gap-4 text-center sm:flex-row sm:items-start">
+            <p className="text-gray-600 dark:text-gray-300">
+              DOCX or PDF supported. Choose target language and options.
+            </p>
+            <div className="flex flex-row flex-wrap items-start gap-4">
+              <div className="space-y-2">
+                <Label>Target language</Label>
+                <Popover open={langOpen} onOpenChange={setLangOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={langOpen}
+                      className="w-56 justify-between"
+                    >
+                      {targetLang || "Select language"}
+                      <ChevronsUpDownIcon className="ml-2 size-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-0">
+                    <Command>
+                      <CommandInput placeholder="Search language..." />
+                      <CommandEmpty>No language found.</CommandEmpty>
+                      <CommandList>
+                        <CommandGroup heading="European">
+                          {EUROPEAN_LANGS.map((opt) => (
+                            <CommandItem
+                              key={opt.value}
+                              value={opt.label}
+                              onSelect={() => {
+                                setTargetLang(opt.value);
+                                setLangOpen(false);
+                              }}
+                            >
+                              {opt.label}
+                              {targetLang === opt.value ? (
+                                <CheckIcon className="ml-auto size-4" />
+                              ) : null}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                        <CommandGroup heading="Indic">
+                          {INDIC_LANGS.map((opt) => (
+                            <CommandItem
+                              key={opt.value}
+                              value={opt.label}
+                              onSelect={() => {
+                                setTargetLang(opt.value);
+                                setLangOpen(false);
+                              }}
+                            >
+                              {opt.label}
+                              {targetLang === opt.value ? (
+                                <CheckIcon className="ml-auto size-4" />
+                              ) : null}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                        <CommandGroup heading="Other">
+                          {OTHER_LANGS.map((opt) => (
+                            <CommandItem
+                              key={opt.value}
+                              value={opt.label}
+                              onSelect={() => {
+                                setTargetLang(opt.value);
+                                setLangOpen(false);
+                              }}
+                            >
+                              {opt.label}
+                              {targetLang === opt.value ? (
+                                <CheckIcon className="ml-auto size-4" />
+                              ) : null}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Tone</Label>
+                <Select value={tone} onValueChange={setTone}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TONE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardDescription>
         </CardHeader>
@@ -206,14 +308,16 @@ export function TranslatorUI() {
           <div
             onDrop={onDrop}
             onDragOver={onDragOver}
-            className="hover:bg-muted/30 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-8 text-center"
+            className="hover:border-primary group flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-gray-400/50 bg-white/70 p-10 text-center shadow-sm ring-1 ring-black/5 transition-colors backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5"
             onClick={() => document.getElementById("file-input")?.click()}
           >
             <div className="text-muted-foreground text-sm">
               {file ? (
                 <span>{file.name}</span>
               ) : (
-                <span>Drag & drop your file here or click to browse</span>
+                <span>
+                  Drag & drop your file here or <span className="font-semibold text-primary">click to browse</span>
+                </span>
               )}
             </div>
             <Input
@@ -223,7 +327,7 @@ export function TranslatorUI() {
               className="hidden"
               onChange={(e) => onSelectFile(e.target.files?.[0] ?? null)}
             />
-            <Button type="button" variant="secondary">
+            <Button type="button" variant="secondary" className="transition hover:opacity-90">
               Choose file
             </Button>
           </div>
@@ -245,7 +349,7 @@ export function TranslatorUI() {
 
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <Button disabled={!canStart} onClick={startUpload}>
+              <Button disabled={!canStart} onClick={startUpload} className="bg-primary px-5">
                 {isUploading ? "Translating..." : "Translate"}
               </Button>
               {isUploading && (
@@ -257,6 +361,12 @@ export function TranslatorUI() {
                   Cancel
                 </Button>
               )}
+              <Button
+                variant="secondary"
+                
+              >
+                Summary
+              </Button>
               {downloadHref && !isUploading && (
                 <a href={downloadHref} target="_blank" rel="noreferrer">
                   <Button type="button" variant="default">

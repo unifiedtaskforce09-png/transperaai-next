@@ -14,12 +14,28 @@ export async function POST(req: NextRequest) {
   console.log("API CALLED: ", PY_BASE);
 
   const form = await req.formData();
-  form.append("max_total_chars", "50000");
-  const upstream = await fetch(`${PY_BASE}/translate`, {
+  const isMaster = form.get("is_master");
+  const file = form.get("file");
+  const isPdf = file instanceof File && file.name.endsWith(".pdf");
+  form.delete("is_master");
+  form.append("max_total_chars", `${isMaster ? "50000" : null}`);
+  let upstream;
+  if (isPdf) {
+    upstream = await fetch(`${PY_BASE}/translate-pdf`, {
     method: "POST",
     // Let undici set proper multipart headers for FormData
     body: form,
   });
+  } else {
+      upstream = await fetch(`${PY_BASE}/translate`, {
+        method: "POST",
+        // Let undici set proper multipart headers for FormData
+        body: form,
+      });
+
+  }
+
+
 
   if (!upstream.body) {
     return new NextResponse("Upstream had no body", { status: 502 });

@@ -39,7 +39,15 @@ export function Navbar() {
             alt="Transpera Ai"
             width={28}
             height={28}
-            className="h-7 w-7 rounded"
+            className="h-7 w-7 rounded dark:hidden"
+            priority
+          />
+          <Image
+            src="/dark_logo.png"
+            alt="Transpera Ai"
+            width={28}
+            height={28}
+            className="hidden h-7 w-7 rounded dark:block"
             priority
           />
           <span className="text-base font-bold text-gray-900 dark:text-white">

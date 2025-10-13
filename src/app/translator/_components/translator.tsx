@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -79,6 +81,7 @@ export function TranslatorUI() {
   const [logLine, setLogLine] = useState<string | null>(null);
   const [downloadPath, setDownloadPath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -89,6 +92,7 @@ export function TranslatorUI() {
     setLogLine(null);
     setDownloadPath(null);
     setError(null);
+    setSummary(null);
   }, []);
 
   const onDrop = useCallback(
@@ -128,7 +132,7 @@ export function TranslatorUI() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`api/python/translate`, {
+      const res = await fetch(`/api/python/translate`, {
         method: "POST",
         body: form,
         signal: controller.signal,
@@ -152,7 +156,6 @@ export function TranslatorUI() {
           buffer = buffer.slice(idx + 1);
           if (!line) continue;
           try {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const data: StreamUpdate = JSON.parse(line);
             if (typeof data.progress === "number") setProgress(data.progress);
             if (data.status) setStatus(data.status);
@@ -169,7 +172,6 @@ export function TranslatorUI() {
       const finalLine = buffer.trim();
       if (finalLine) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const data: StreamUpdate = JSON.parse(finalLine);
           if (typeof data.progress === "number") setProgress(data.progress);
           if (data.status) setStatus(data.status);
@@ -196,6 +198,113 @@ export function TranslatorUI() {
     const path = downloadPath.startsWith("/") ? downloadPath : `/${downloadPath}`;
     return `/api/python/download?path=${encodeURIComponent(path)}`;
   }, [downloadPath]);
+
+  const startSummary = useCallback(async () => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      setError("Summary works with PDF files only");
+      return;
+    }
+    setIsUploading(true);
+    setError(null);
+    setProgress(1);
+    setStatus("Initializing summary...");
+    setLogLine(null);
+    setDownloadPath(null);
+    setSummary(null);
+
+    const form = new FormData();
+    form.append("file", file);
+    form.append("targetLang", targetLang);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const res = await fetch(`/api/python/summarize`, {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) {
+        throw new Error(`Summary failed (${res.status})`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        let idx;
+        while ((idx = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, idx).trim();
+          buffer = buffer.slice(idx + 1);
+          if (!line) continue;
+          try {
+            const data: StreamUpdate = JSON.parse(line);
+            if (typeof data.progress === "number") setProgress(data.progress);
+            if (data.status) setStatus(data.status);
+            if (typeof data.message === "string") setLogLine(data.message);
+            if (typeof data.summary === "string") setSummary(data.summary);
+          } catch {
+            // ignore malformed partial lines
+          }
+        }
+      }
+
+      const finalLine = buffer.trim();
+      if (finalLine) {
+        try {
+          const data: StreamUpdate = JSON.parse(finalLine);
+          if (typeof data.progress === "number") setProgress(data.progress);
+          if (data.status) setStatus(data.status);
+          if (typeof data.message === "string") setLogLine(data.message);
+          if (typeof data.summary === "string") setSummary(data.summary);
+        } catch {}
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unexpected error";
+      setError(msg);
+      setStatus("Error");
+    } finally {
+      setIsUploading(false);
+      abortRef.current = null;
+    }
+  }, [file, targetLang]);
+
+  const downloadSummary = useCallback(async () => {
+    if (!summary) return;
+    try {
+      const res = await fetch(`/api/python/export-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary }),
+      });
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const blob = await res.blob();
+      const dispo = res.headers.get("content-disposition");
+      let filename = "document_summary.docx";
+      if (dispo) {
+        const m = /filename\s*=\s*"?([^";]+)"?/i.exec(dispo);
+        if (m?.[1]) filename = m[1];
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unexpected error";
+      setError(msg);
+    }
+  }, [summary]);
 
   return (
     <section className="mx-auto w-full max-w-5xl">
@@ -363,10 +472,16 @@ export function TranslatorUI() {
               )}
               <Button
                 variant="secondary"
-                
+                onClick={startSummary}
+                disabled={!file || isUploading}
               >
-                Summary
+                {isUploading ? "Summarizing..." : "Summary"}
               </Button>
+              {summary && !isUploading && (
+                <Button type="button" variant="default" onClick={downloadSummary}>
+                  Download summary
+                </Button>
+              )}
               {downloadHref && !isUploading && (
                 <a href={downloadHref} target="_blank" rel="noreferrer">
                   <Button type="button" variant="default">
@@ -385,6 +500,13 @@ export function TranslatorUI() {
               {logLine && (
                 <div className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-xs">
                   {logLine}
+                </div>
+              )}
+              {summary && (
+                <div className="rounded-md border border-border bg-background px-4 py-4 text-sm prose prose-sm dark:prose-invert max-w-none text-left prose-headings:text-left prose-p:text-left prose-li:text-left prose-ul:text-left prose-ol:text-left">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {summary}
+                  </ReactMarkdown>
                 </div>
               )}
               {error && (

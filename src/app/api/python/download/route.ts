@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
   const path = searchParams.get("path");
   if (!path) return new NextResponse("Missing path", { status: 400 });
 
-  const url = `${PY_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  // URLSearchParams.get() returns a decoded string; re-encode to produce a valid upstream URL
+  const encodedPath = encodeURI(path.startsWith("/") ? path : `/${path}`);
+  const url = `${PY_BASE}${encodedPath}`;
   const upstream = await fetch(url);
   if (!upstream.ok || !upstream.body) {
     return new NextResponse("Failed to fetch file", { status: upstream.status });

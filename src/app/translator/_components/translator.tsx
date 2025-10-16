@@ -70,7 +70,7 @@ const OTHER_LANGS: Array<{ value: string; label: string }> = [
 export function TranslatorUI() {
 
   const [file, setFile] = useState<File | null>(null);
-  const [targetLang, setTargetLang] = useState<string>("Hindi");
+  const [targetLang, setTargetLang] = useState<string>("English");
   const [engine] = useState<string>("gemini");
   const [tone, setTone] = useState<string>("professional");
   const [langOpen, setLangOpen] = useState<boolean>(false);
@@ -117,28 +117,56 @@ export function TranslatorUI() {
     setIsUploading(true);
     setError(null);
     setProgress(1);
-    setStatus("Initializing...");
+    setStatus("Requesting upload URL...");
     setLogLine(null);
     setDownloadPath(null);
-
-    const form = new FormData();
-    form.append("file", file);
-    form.append("targetLang", targetLang);
-    form.append("engine", engine);
-    form.append("tone", tone);
-    form.append("pdfEngine", "pdf2docx");
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
+      // 1) Ask backend for signed PUT URL
+      const objectName = `uploads/${crypto.randomUUID()}-${file.name}`;
+      const signedRes = await fetch(`/api/gcp/storage/signed-url`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ objectName, contentType: file.type, expiresInSeconds: 900 }),
+        signal: controller.signal,
+      });
+      if (!signedRes.ok) throw new Error(`Failed to get signed URL (${signedRes.status})`);
+      const { url, method } = (await signedRes.json()) as {
+        url: string;
+        method: string;
+      };
+      console.log("url", url);
+      console.log("Uploading to cloud...");
+      setStatus("Uploading to cloud...");
+      // 2) Upload directly to GCS
+      const put = await fetch(url, {
+        method,
+        headers: { "content-type": file.type },
+        body: file,
+        signal: controller.signal,
+      });
+      console.log("put", put);
+      if (!put.ok) throw new Error(`Cloud upload failed (${put.status})`);
+
+      // 3) Call translate with uploaded object name
+      setStatus("Starting translation...");
       const res = await fetch(`/api/python/translate`, {
         method: "POST",
-        body: form,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          objectName,
+          targetLang,
+          engine,
+          tone,
+          pdfEngine: "pdf2docx",
+        }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
-        throw new Error(`Upload failed (${res.status})`);
+        throw new Error(`Translate request failed (${res.status})`);
       }
 
       const reader = res.body.getReader();
@@ -160,9 +188,9 @@ export function TranslatorUI() {
             if (typeof data.progress === "number") setProgress(data.progress);
             if (data.status) setStatus(data.status);
             if (typeof data.message === "string") setLogLine(data.message);
-            if (data.downloadUrl) {
-              setDownloadPath(data.downloadUrl);
-            }
+          if (data.downloadUrl) {
+            setDownloadPath(data.downloadUrl);
+          }
           } catch {
             // ignore malformed partial lines
           }
@@ -195,6 +223,8 @@ export function TranslatorUI() {
 
   const downloadHref = useMemo(() => {
     if (!downloadPath) return null;
+    // If it's an absolute URL (e.g., GCS), return as-is; otherwise go through python proxy
+    if (/^https?:\/\//i.test(downloadPath)) return downloadPath;
     const path = downloadPath.startsWith("/") ? downloadPath : `/${downloadPath}`;
     return `/api/python/download?path=${encodeURIComponent(path)}`;
   }, [downloadPath]);

@@ -20,6 +20,14 @@ export const env = createEnv({
     SMTP_PASSWORD: z.string().optional(),
     EMAIL_FROM: z.string().email().optional(),
     FEEDBACK_TO: z.string().email().optional(),
+    GCP_PROJECT_ID:
+      process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+    GCP_CLIENT_EMAIL:
+      process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+    GCP_PRIVATE_KEY:
+      process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
+    GCS_BUCKET_NAME:
+      process.env.NODE_ENV === "production" ? z.string() : z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -49,6 +57,10 @@ export const env = createEnv({
     SMTP_PASSWORD: process.env.SMTP_PASSWORD,
     EMAIL_FROM: process.env.EMAIL_FROM,
     FEEDBACK_TO: process.env.FEEDBACK_TO,
+    GCP_PROJECT_ID: process.env.GCP_PROJECT_ID,
+    GCP_CLIENT_EMAIL: process.env.GCP_CLIENT_EMAIL,
+    GCP_PRIVATE_KEY: process.env.GCP_PRIVATE_KEY,
+    GCS_BUCKET_NAME: process.env.GCS_BUCKET_NAME,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

@@ -33,6 +33,11 @@ declare module "next-auth" {
 export const authConfig = {
   providers: [Google],
   adapter: PrismaAdapter(db),
+  session: {
+    strategy: "database",
+    maxAge: 60 * 60 * 6,
+    updateAge: 60 * 60 * 24,
+  },
   callbacks: {
     session: ({ session, user }) => ({
       ...session,

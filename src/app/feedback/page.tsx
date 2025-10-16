@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -8,8 +9,11 @@ export default function FeedbackPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const { data: session } = useSession();
   async function submit(e: React.FormEvent) {
+
+
+    
     e.preventDefault();
     if (!message.trim()) {
       toast.error("Please enter your feedback message");
@@ -20,14 +24,12 @@ export default function FeedbackPage() {
       const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, message }),
+        body: JSON.stringify({ name: session?.user?.name ?? "Anonymous", email : session?.user?.email ?? "no-email@unknown", message }),
       });
       const data = (await res.json()) as { ok?: boolean; previewUrl?: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? "Failed to send");
       toast.success("Feedback sent. Thank you!");
       if (data.previewUrl) toast.message("Preview email (dev only)", { description: data.previewUrl });
-      setName("");
-      setEmail("");
       setMessage("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send feedback");
@@ -56,22 +58,7 @@ export default function FeedbackPage() {
           onSubmit={submit}
           className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-white/10"
         >
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <input
-              type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="rounded-md border bg-white/80 px-3 py-2 text-sm outline-none ring-1 ring-black/5 transition focus:ring-2 focus:ring-primary dark:bg-white/10 dark:ring-white/10"
-            />
-            <input
-              type="email"
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border bg-white/80 px-3 py-2 text-sm outline-none ring-1 ring-black/5 transition focus:ring-2 focus:ring-primary dark:bg-white/10 dark:ring-white/10"
-            />
-          </div>
+          
           <textarea
             placeholder="Your message"
             value={message}

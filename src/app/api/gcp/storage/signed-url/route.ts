@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { getSignedUrl, getPublicUrl } from "@/server/gcp/storage";
+import { getSignedUrl } from "@/server/gcp/storage";
 import { auth } from "@/server/auth";
 
 export const runtime = "nodejs";
@@ -18,13 +18,10 @@ export async function GET(req: NextRequest) {
       status: 400,
       headers: { "content-type": "application/json" },
     });
-  const expiresInSeconds = expiresIn ? Number(expiresIn) : undefined;
+  const expiresInSeconds = expiresIn ? Number(expiresIn) : 600;
   try {
     const url = await getSignedUrl(objectName, "read", { expiresInSeconds });
-    const publicUrl = getPublicUrl(objectName);
-    console.log("publicUrl", publicUrl);
-    console.log("url", url);
-    return Response.json({ url, method: "GET", objectName, publicUrl });
+    return Response.json({ url, method: "GET", objectName, expiresInSeconds });
   } catch (err) {
     console.error(err);
     return new Response(
@@ -64,10 +61,9 @@ export async function POST(req: NextRequest) {
   try {
     const url = await getSignedUrl(objectName, "write", {
       contentType,
-      expiresInSeconds,
+      expiresInSeconds: expiresInSeconds ?? 600,
     });
-    const publicUrl = getPublicUrl(objectName);
-    return Response.json({ url, method: "PUT", objectName, publicUrl });
+    return Response.json({ url, method: "PUT", objectName });
   } catch (err) {
     console.error(err);
     return new Response(

@@ -40,8 +40,7 @@ export async function POST(req: NextRequest) {
     // Build multipart/form-data body using file bytes from GCS
     const form = new FormData();
     const [bytes] = await file.download();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const uint8 = Uint8Array.from(bytes);
+    const uint8 = Uint8Array.from(bytes as Iterable<number>);
     const uploadFile = new File([uint8], filename, { type: contentTypeGuess });
     form.append("file", uploadFile);
     form.append("targetLang", data.targetLang);
@@ -137,7 +136,7 @@ export async function POST(req: NextRequest) {
                 const buffer = Buffer.from(arrayBuf);
                 const objectName = `translated/${crypto.randomUUID()}-${filename}`;
                 await uploadBuffer(objectName, buffer, contentType);
-                finalObj.downloadUrl = await getSignedUrl(objectName, "read", { expiresInSeconds: 60 * 60 });
+                finalObj.downloadUrl = await getSignedUrl(objectName, "read", { expiresInSeconds: 300 });
               }
             } catch {
               // Fall back to original downloadUrl on failure

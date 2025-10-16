@@ -70,12 +70,13 @@ const OTHER_LANGS: Array<{ value: string; label: string }> = [
 export function TranslatorUI() {
 
   const [file, setFile] = useState<File | null>(null);
-  const [targetLang, setTargetLang] = useState<string>("English");
+  const [targetLang, setTargetLang] = useState<string>("Select language");
   const [engine] = useState<string>("gemini");
   const [tone, setTone] = useState<string>("professional");
   const [langOpen, setLangOpen] = useState<boolean>(false);
 
-  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+  const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [status, setStatus] = useState<string>("Ready");
   const [logLine, setLogLine] = useState<string | null>(null);
@@ -110,11 +111,15 @@ export function TranslatorUI() {
     e.preventDefault();
   }, []);
 
-  const canStart = useMemo(() => !!file && !isUploading, [file, isUploading]);
+  const canStart = useMemo(() => !!file && !isTranslating && !isSummarizing, [file, isTranslating, isSummarizing]);
 
   const startUpload = useCallback(async () => {
+    if (targetLang === "Select language") {
+      setError("Please select a target language");
+      return;
+    }
     if (!file) return;
-    setIsUploading(true);
+    setIsTranslating(true);
     setError(null);
     setProgress(1);
     setStatus("Requesting upload URL...");
@@ -214,7 +219,7 @@ export function TranslatorUI() {
       setError(msg);
       setStatus("Error");
     } finally {
-      setIsUploading(false);
+      setIsTranslating(false);
       abortRef.current = null;
     }
   }, [engine, file, targetLang, tone]);
@@ -235,7 +240,7 @@ export function TranslatorUI() {
       setError("Summary works with PDF files only");
       return;
     }
-    setIsUploading(true);
+    setIsSummarizing(true);
     setError(null);
     setProgress(1);
     setStatus("Initializing summary...");
@@ -301,7 +306,7 @@ export function TranslatorUI() {
       setError(msg);
       setStatus("Error");
     } finally {
-      setIsUploading(false);
+      setIsSummarizing(false);
       abortRef.current = null;
     }
   }, [file, targetLang]);
@@ -341,7 +346,7 @@ export function TranslatorUI() {
       <Card className="relative rounded-2xl border-white/60 bg-white/70 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
         <CardHeader className="flex flex-col gap-1 sm:gap-2">
           <CardTitle>
-            <h2 className="text-center text-2xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+            <h2 className="text-center text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white">
               Upload your document
             </h2>
           </CardTitle>
@@ -447,7 +452,7 @@ export function TranslatorUI() {
           <div
             onDrop={onDrop}
             onDragOver={onDragOver}
-            className="hover:border-primary group flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-gray-400/50 bg-white/70 p-10 text-center shadow-sm ring-1 ring-black/5 transition-colors backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:ring-white/5"
+            className="hover:border-primary group flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-gray-400/50 bg-white/70 p-10 text-center shadow-sm ring-1 ring-black/5 backdrop-blur-sm transition-colors dark:border-white/10 dark:bg-white/5 dark:ring-white/5"
             onClick={() => document.getElementById("file-input")?.click()}
           >
             <div className="text-muted-foreground text-sm">
@@ -455,7 +460,10 @@ export function TranslatorUI() {
                 <span>{file.name}</span>
               ) : (
                 <span>
-                  Drag & drop your file here or <span className="font-semibold text-primary">click to browse</span>
+                  Drag & drop your file here or{" "}
+                  <span className="text-primary font-semibold">
+                    click to browse
+                  </span>
                 </span>
               )}
             </div>
@@ -466,32 +474,32 @@ export function TranslatorUI() {
               className="hidden"
               onChange={(e) => onSelectFile(e.target.files?.[0] ?? null)}
             />
-            <Button type="button" variant="secondary" className="transition hover:opacity-90">
+            <Button
+              type="button"
+              variant="secondary"
+              className="transition hover:opacity-90"
+            >
               Choose file
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {/* <div className="space-y-2">
-              <Label>Engine</Label>
-              <Select value={engine} onValueChange={setEngine}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select engine" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gemini">Gemini</SelectItem>
-                  <SelectItem value="groq">Groq</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
+          <div className="">
+
+              <p className="my-[-20px] text-right text-sm text-gray-600 italic dark:text-gray-300">
+                The content is translated using AI
+              </p>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <Button disabled={!canStart} onClick={startUpload} className="bg-primary px-5">
-                {isUploading ? "Translating..." : "Translate"}
+              <Button
+                disabled={!canStart}
+                onClick={startUpload}
+                className="bg-primary px-5"
+              >
+                {isTranslating ? "Translating..." : "Translate"}
               </Button>
-              {isUploading && (
+              {(isTranslating || isSummarizing) && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -503,16 +511,20 @@ export function TranslatorUI() {
               <Button
                 variant="secondary"
                 onClick={startSummary}
-                disabled={!file || isUploading}
+                disabled={!file || isTranslating || isSummarizing}
               >
-                {isUploading ? "Summarizing..." : "Summary"}
+                {isSummarizing ? "Summarizing..." : "Summary"}
               </Button>
-              {summary && !isUploading && (
-                <Button type="button" variant="default" onClick={downloadSummary}>
+              {summary && !isTranslating && !isSummarizing && (
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={downloadSummary}
+                >
                   Download summary
                 </Button>
               )}
-              {downloadHref && !isUploading && (
+              {downloadHref && !isTranslating && !isSummarizing && (
                 <a href={downloadHref} target="_blank" rel="noreferrer">
                   <Button type="button" variant="default">
                     Download translated
@@ -533,7 +545,7 @@ export function TranslatorUI() {
                 </div>
               )}
               {summary && (
-                <div className="rounded-md border border-border bg-background px-4 py-4 text-sm prose prose-sm dark:prose-invert max-w-none text-left prose-headings:text-left prose-p:text-left prose-li:text-left prose-ul:text-left prose-ol:text-left">
+                <div className="border-border bg-background prose prose-sm dark:prose-invert prose-headings:text-left prose-p:text-left prose-li:text-left prose-ul:text-left prose-ol:text-left max-w-none rounded-md border px-4 py-4 text-left text-sm">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {summary}
                   </ReactMarkdown>

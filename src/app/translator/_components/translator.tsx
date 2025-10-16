@@ -55,6 +55,14 @@ const EUROPEAN_LANGS: Array<{ value: string; label: string }> = [
   { value: "Spanish", label: "Spanish" },
   { value: "German", label: "German" },
   { value: "French", label: "French" },
+  { value: "Italian", label: "Italian" },
+  { value: "Portuguese", label: "Portuguese" },
+  { value: "Dutch", label: "Dutch" },
+  { value: "Polish", label: "Polish" },
+  { value: "Romanian", label: "Romanian" },
+  { value: "Slovak", label: "Slovak" },
+  { value: "Slovenian", label: "Slovenian" },
+  { value: "Swedish", label: "Swedish" },
 ];
 
 const INDIC_LANGS: Array<{ value: string; label: string }> = [
